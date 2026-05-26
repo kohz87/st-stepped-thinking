@@ -46,6 +46,30 @@
                 </label>
             </div>
 
+            <div class="flex-container alignItemsCenter marginTopBot5">
+                <label for="stepthink_connection_source"
+                       title="Use the currently active SillyTavern API connection, or temporarily switch to a specific connection profile while Stepped Thinking generates thoughts">
+                    API connection:
+                </label>
+                <select id="stepthink_connection_source" class="text_pole widthNatural">
+                    <option value="default">Use current connection</option>
+                    <option value="profile">Use specific profile</option>
+                </select>
+            </div>
+
+            <div id="stepthink_connection_profile_group" class="flex-container alignItemsCenter marginTopBot5" style="display:none;">
+                <label for="stepthink_connection_profile"
+                       title="SillyTavern connection profile to use only for Stepped Thinking generations">
+                    Connection profile:
+                </label>
+                <select id="stepthink_connection_profile" class="text_pole widthNatural">
+                    <option value="">-- Select Profile --</option>
+                </select>
+                <div id="stepthink_reload_connection_profiles"
+                     class="menu_button menu_button_icon fa-solid fa-undo"
+                     title="Reload connection profiles"></div>
+            </div>
+
             <div class="flex-container marginTopBot5 stepthink_mode_separated">
                 <label class="checkbox_label expander" for="stepthink_is_thoughts_as_system"
                        title="Include character thoughts messages as the System role">
