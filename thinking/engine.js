@@ -506,16 +506,26 @@ async function withConnectionProfile(generate) {
         return await generate();
     }
 
-    await context.executeSlashCommandsWithOptions(`/profile ${quoteSlashCommandArgument(profileName)}`);
-    await new Promise(resolve => setTimeout(resolve, 450));
+    await switchConnectionProfile(profileName);
 
     try {
         return await generate();
     } finally {
         if (previousProfileName && previousProfileName !== profileName) {
-            await context.executeSlashCommandsWithOptions(`/profile ${quoteSlashCommandArgument(previousProfileName)}`);
+            await switchConnectionProfile(previousProfileName);
         }
     }
+}
+
+/**
+ * @param {string} profileName
+ * @return {Promise<void>}
+ */
+async function switchConnectionProfile(profileName) {
+    const context = getContext();
+    await context.executeSlashCommandsWithOptions(
+        `/profile await=true timeout=10000 ${quoteSlashCommandArgument(profileName)}`
+    );
 }
 
 /**
