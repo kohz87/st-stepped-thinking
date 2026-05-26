@@ -137,6 +137,8 @@ const defaultCommonSettings = {
     'mode': 'embedded',
     'max_thoughts_in_prompt': 2,
     'generation_delay': 0.0,
+    'connection_source': 'default',
+    'connection_profile': '',
     'min_thought_length': 0,
     'max_response_length': 0,
     'regexp_to_sanitize': '(<\\/?details\\s?(type="executing")?>)|(<\\/?summary>)|(Thinking ({{char}}) 💭)|(```)|(<\\/?[\\w\\s]*>)',
@@ -182,6 +184,9 @@ function loadCommonSettings() {
     $('#stepthink_min_thought_length').val(settings.min_thought_length);
     $('#stepthink_max_response_length').val(settings.max_response_length);
     $('#stepthink_generation_delay').val(settings.generation_delay);
+    $(`#stepthink_connection_source option[value="${settings.connection_source}"]`).prop('selected', 'true');
+    toggleConnectionProfileSettings();
+    loadConnectionProfiles();
     $('#stepthink_max_hiding_thoughts_lookup').val(settings.max_hiding_thoughts_lookup);
     $('#stepthink_is_enabled').prop('checked', settings.is_enabled).trigger('input');
     $('#stepthink_is_wian_skipped').prop('checked', settings.is_wian_skipped).trigger('input');
@@ -227,6 +232,10 @@ function registerCommonSettingListeners() {
     $('#stepthink_min_thought_length').on('input', onIntegerTextareaInput('min_thought_length'));
     $('#stepthink_max_response_length').on('input', onIntegerTextareaInput('max_response_length'));
     $('#stepthink_generation_delay').on('input', onGenerationDelayInput);
+    $('#stepthink_connection_source').on('input', onConnectionSourceInput);
+    $('#stepthink_connection_profile').on('input', onTextareaInput('connection_profile'));
+    $('#stepthink_reload_connection_profiles').on('click', loadConnectionProfiles);
+    eventSource.on(event_types.APP_READY, loadConnectionProfiles);
     $('#stepthink_max_hiding_thoughts_lookup').on('input', onIntegerTextareaInput('max_hiding_thoughts_lookup'));
 
     $('#stepthink_sending_thoughts_role').on('input', onIntegerTextareaInput('sending_thoughts_role'));
@@ -358,6 +367,80 @@ function onGenerationDelayInput() {
 
     settings.generation_delay = value;
     saveSettingsDebounced();
+}
+
+/**
+ * @return {void}
+ */
+function onConnectionSourceInput() {
+    settings.connection_source = $(this).val();
+    toggleConnectionProfileSettings();
+    saveSettingsDebounced();
+}
+
+/**
+ * @return {void}
+ */
+function toggleConnectionProfileSettings() {
+    $('#stepthink_connection_profile_group').toggle(settings.connection_source === 'profile');
+}
+
+/**
+ * @return {Promise<void>}
+ */
+async function loadConnectionProfiles() {
+    const selector = $('#stepthink_connection_profile');
+    if (!selector.length) {
+        return;
+    }
+
+    const currentValue = settings.connection_profile || '';
+    selector.empty();
+    selector.append($('<option>', { value: '', text: '-- Select Profile --' }));
+
+    for (const profile of await getConnectionProfiles()) {
+        selector.append($('<option>', { value: profile.name, text: profile.name }));
+    }
+
+    if (Array.from(selector[0].options).some(option => option.value === currentValue)) {
+        selector.val(currentValue);
+    } else if (currentValue) {
+        selector.append($('<option>', { value: currentValue, text: `${currentValue} (not found)` }));
+        selector.val(currentValue);
+    }
+}
+
+/**
+ * @return {Promise<{name: string}[]>}
+ */
+async function getConnectionProfiles() {
+    const context = getContext();
+
+    if (context.ConnectionManagerRequestService && typeof context.ConnectionManagerRequestService.getSupportedProfiles === 'function') {
+        return context.ConnectionManagerRequestService.getSupportedProfiles()
+            .map(profile => ({ name: profile.name || profile.id }))
+            .filter(profile => profile.name);
+    }
+
+    if (typeof context.executeSlashCommandsWithOptions === 'function') {
+        try {
+            const result = await context.executeSlashCommandsWithOptions('/profile-list');
+            const names = JSON.parse(result?.pipe || '[]');
+            return names.map(name => ({ name }));
+        } catch (error) {
+            console.warn('[Stepped Thinking] Failed to load connection profiles via /profile-list', error);
+        }
+    }
+
+    const nativeSelector = document.getElementById('connection_profile');
+    if (nativeSelector?.options) {
+        return Array.from(nativeSelector.options)
+            .filter(option => option.value && option.value !== 'default' && option.value !== 'gui')
+            .map(option => ({ name: option.textContent.trim() }))
+            .filter(profile => profile.name);
+    }
+
+    return [];
 }
 
 /**

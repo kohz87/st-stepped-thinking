@@ -15,6 +15,7 @@ prompt generation. This increases the overall waiting time for a response in fav
 3. Regenerating specific generated thoughts when necessary.
 4. Removing extra symbols from thoughts using a customizable regular expression.
 5. Hiding thoughts behind a spoiler to create intrigue, if desired.
+6. Routing thought generation through a specific SillyTavern API connection profile.
 
 #### Character-Specific Settings
 1. Assigning custom prompt sets to specific characters.
@@ -26,8 +27,7 @@ prompt generation. This increases the overall waiting time for a response in fav
 
 1. "On-Click" mode for generating thoughts.
 2. Presets for thinking prompts.
-3. Using a different API for generating thoughts.
-4. Localization in Russian.
+3. Localization in Russian.
 
 You can find a more detailed roadmap in the wiki by following [this link](https://github.com/cierru/st-stepped-thinking/wiki/Roadmap).
 Before proposing a feature, please make sure that the feature is not already listed in the roadmap.
@@ -65,6 +65,10 @@ There is an example of how the result may look like:
 ### Settings
 
 You can find the extension settings in the `Stepped Thinking` section of the SillyTavern `Extensions` menu.
+
+Use `API connection` to choose whether Stepped Thinking should use the currently active SillyTavern connection or
+temporarily switch to a selected connection profile while generating thoughts. After the thought request finishes, the
+extension restores the previously active profile.
 
 #### Character-Specific Settings
 

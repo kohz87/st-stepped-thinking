@@ -450,12 +450,12 @@ async function generateCharacterThought(prompt) {
 
     let result, isLengthAboveMinimum = true;
     do {
-        result = await context.generateQuietPrompt({
+        result = await withConnectionProfile(async () => context.generateQuietPrompt({
             quietPrompt: prompt,
             skipWIAN: settings.is_wian_skipped,
             responseLength: settings.max_response_length,
             forceChId: currentGenerationPlan.getCharacterId(),
-        });
+        }));
 
         isLengthAboveMinimum = result.length >= settings.min_thought_length;
         if (!isLengthAboveMinimum) {
@@ -476,6 +476,54 @@ async function generateCharacterThought(prompt) {
     }
 
     return result;
+}
+
+/**
+ * @param {function(): Promise<string>} generate
+ * @return {Promise<string>}
+ */
+async function withConnectionProfile(generate) {
+    const profileName = settings.connection_source === 'profile' ? settings.connection_profile : '';
+    if (!profileName) {
+        return await generate();
+    }
+
+    const context = getContext();
+    if (typeof context.executeSlashCommandsWithOptions !== 'function') {
+        console.warn('[Stepped Thinking] Cannot switch connection profile: slash command executor is unavailable');
+        return await generate();
+    }
+
+    let previousProfileName = '';
+    try {
+        const currentProfile = await context.executeSlashCommandsWithOptions('/profile');
+        previousProfileName = currentProfile?.pipe?.trim() || '';
+    } catch (error) {
+        console.warn('[Stepped Thinking] Failed to read current connection profile', error);
+    }
+
+    if (previousProfileName === profileName) {
+        return await generate();
+    }
+
+    await context.executeSlashCommandsWithOptions(`/profile ${quoteSlashCommandArgument(profileName)}`);
+    await new Promise(resolve => setTimeout(resolve, 450));
+
+    try {
+        return await generate();
+    } finally {
+        if (previousProfileName && previousProfileName !== profileName) {
+            await context.executeSlashCommandsWithOptions(`/profile ${quoteSlashCommandArgument(previousProfileName)}`);
+        }
+    }
+}
+
+/**
+ * @param {string} value
+ * @return {string}
+ */
+function quoteSlashCommandArgument(value) {
+    return `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
 /**
